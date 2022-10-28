@@ -35,7 +35,7 @@ AS
 
 	INSERT INTO HISTORICO_SOLICITUDES VALUES (@num_dispositivo, @num_usuario, GETDATE(), @ultimatum)
 	
-	IF @ultimatum = 'D'
+	IF @ultimatum = 'O'
 		DELETE FROM SOLICITUDES WHERE NUM_SERIE = @num_dispositivo AND ID_USUARIO = @num_usuario
 GO
 
