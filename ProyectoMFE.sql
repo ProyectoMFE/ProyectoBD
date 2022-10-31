@@ -13,7 +13,7 @@ CREATE TABLE [DISPOSITIVOS] (
 	NUM_SERIE nvarchar(20) NOT NULL,
 	ID_CATEGORIA int NOT NULL,
 	MARCA nvarchar(20) NOT NULL,
-	MODELO nvarchar(20) NOT NULL,
+	MODELO nvarchar(40) NOT NULL,
 	LOCALIZACION nvarchar(10) NOT NULL,
 	ESTADO char NOT NULL,
   CONSTRAINT [PK_DISPOSITIVOS] PRIMARY KEY CLUSTERED
@@ -85,7 +85,6 @@ CREATE TABLE [ORDENADORES] (
 )
 GO
 
-
 -- Creamos la clave foranea entre dispositivos y categoría.
 ALTER TABLE [DISPOSITIVOS] WITH CHECK ADD CONSTRAINT [DISPOSITIVOS_fk0] FOREIGN KEY ([ID_CATEGORIA]) REFERENCES [CATEGORIAS]([ID_CATEGORIA])
 ON UPDATE CASCADE
@@ -147,7 +146,7 @@ GO
 CREATE TRIGGER SOLICITAR_EQUIPO 
 ON SOLICITUDES AFTER INSERT 
 AS
-    DECLARE @num_dispositivo nvarchar
+    DECLARE @num_dispositivo nvarchar(20)
 	
 	SELECT @num_dispositivo = NUM_SERIE FROM INSERTED
 	
@@ -158,7 +157,7 @@ GO
 CREATE TRIGGER ULTIMATUM_EQUIPO 
 ON SOLICITUDES AFTER UPDATE
 AS
-    DECLARE @num_dispositivo nvarchar, @num_usuario int, @ultimatum char
+    DECLARE @num_dispositivo nvarchar(20), @num_usuario int, @ultimatum char
 	
 	SELECT @num_dispositivo = NUM_SERIE FROM INSERTED
 	SELECT @num_usuario = ID_USUARIO FROM INSERTED
@@ -166,7 +165,7 @@ AS
 
 	INSERT INTO HISTORICO_SOLICITUDES VALUES (@num_dispositivo, @num_usuario, GETDATE(), @ultimatum)
 	
-	IF @ultimatum = 'O'
+	IF @ultimatum = 'R'
 		DELETE FROM SOLICITUDES WHERE NUM_SERIE = @num_dispositivo AND ID_USUARIO = @num_usuario
 GO
 
@@ -174,7 +173,7 @@ GO
 CREATE TRIGGER DEVOLVER_EQUIPO 
 ON SOLICITUDES AFTER DELETE
 AS
-    DECLARE @num_dispositivo nvarchar, @num_usuario int, @ultimatum char
+    DECLARE @num_dispositivo nvarchar(20), @num_usuario int, @ultimatum char
 	
 	SELECT @num_dispositivo = NUM_SERIE FROM DELETED
 	SELECT @num_usuario = ID_USUARIO FROM DELETED
@@ -185,7 +184,7 @@ AS
 GO
 
 -- Este procedimiento inserta una solicitud.
-CREATE PROCEDURE INSERTAR_SOLICITUD(@correo nvarchar, @num_dispositivo nvarchar)
+CREATE PROCEDURE INSERTAR_SOLICITUD(@correo nvarchar(30), @num_dispositivo nvarchar(20))
 AS
 	DECLARE @id_usuario int
 
@@ -195,7 +194,7 @@ AS
 GO
 
 -- Este procedimiento acepta una solicitud.
-CREATE PROCEDURE ACEPTAR_SOLICITUD(@correo nvarchar, @num_dispositivo nvarchar)
+CREATE PROCEDURE ACEPTAR_SOLICITUD(@correo nvarchar(30), @num_dispositivo nvarchar(20))
 AS
 	DECLARE @id_usuario int
 
@@ -205,7 +204,7 @@ AS
 GO
 
 -- Este procedimiento rechaza o devuelve una solicitud.
-CREATE PROCEDURE FINALIZAR_SOLICITUD(@correo nvarchar, @num_dispositivo nvarchar)
+CREATE PROCEDURE FINALIZAR_SOLICITUD(@correo nvarchar(30), @num_dispositivo nvarchar(20))
 AS
 	DECLARE @id_usuario int
 
