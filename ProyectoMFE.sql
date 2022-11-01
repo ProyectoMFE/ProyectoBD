@@ -207,7 +207,17 @@ AS
 	UPDATE SOLICITUDES SET ESTADO = 'A' WHERE NUM_SERIE = @num_dispositivo AND ID_USUARIO = @id_usuario
 GO
 
--- Este procedimiento rechaza o devuelve una solicitud.
+-- Este procedimiento rechaza una solicitud.
+CREATE PROCEDURE RECHAZAR_SOLICITUD(@correo nvarchar(30), @num_dispositivo nvarchar(20))
+AS
+	DECLARE @id_usuario int
+
+	SELECT @id_usuario = ID_USUARIO FROM USUARIOS WHERE CORREO = @correo
+
+	UPDATE SOLICITUDES SET ESTADO = 'R' WHERE NUM_SERIE = @num_dispositivo AND ID_USUARIO = @id_usuario
+GO
+
+-- Este procedimiento finaliza una solicitud.
 CREATE PROCEDURE FINALIZAR_SOLICITUD(@correo nvarchar(30), @num_dispositivo nvarchar(20))
 AS
 	DECLARE @id_usuario int
