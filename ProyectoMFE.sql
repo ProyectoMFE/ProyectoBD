@@ -15,7 +15,7 @@ CREATE TABLE [DISPOSITIVOS] (
 	MARCA nvarchar(20) NOT NULL,
 	MODELO nvarchar(40) NOT NULL,
 	LOCALIZACION nvarchar(10) NOT NULL,
-	ESTADO char NOT NULL, -- D: disponible, O: Ocupado, I: Instalado
+	ESTADO nvarchar(15) NOT NULL, -- Disponible, Pendiente, Ocupado, Instalado
   CONSTRAINT [PK_DISPOSITIVOS] PRIMARY KEY CLUSTERED
   (
   [NUM_SERIE] ASC
@@ -26,7 +26,7 @@ GO
 CREATE TABLE [SOLICITUDES] (
 	NUM_SERIE nvarchar(20) NOT NULL,
 	ID_USUARIO int NOT NULL,
-	ESTADO char NOT NULL, -- O: Pendiente, A: Aceptado
+	ESTADO nvarchar(15) NOT NULL, -- Pendiente, Aceptado, Rechazado
   CONSTRAINT [PK_SOLICITUDES] PRIMARY KEY CLUSTERED
   (
   [NUM_SERIE] ASC,
@@ -135,7 +135,7 @@ CREATE TABLE [HISTORICO_SOLICITUDES] (
 	NUM_SERIE nvarchar(20) NOT NULL,
 	ID_USUARIO int NOT NULL,
 	FECHA datetime NOT NULL,
-	ULTIMATUM char NOT NULL, -- R: Rechazado, A: Aceptado
+	ULTIMATUM nvarchar(15) NOT NULL, -- Rechazado, Aceptado
   CONSTRAINT [PK_HISTORICO_SOLICITUDES] PRIMARY KEY CLUSTERED
   (
   [NUM_SERIE] ASC,
@@ -145,7 +145,7 @@ CREATE TABLE [HISTORICO_SOLICITUDES] (
 )
 GO
 
--- Trigger para ocupar un dispositivo en el momento que se solicita.
+-- Trigger para poner en pendiente un dispositivo en el momento que se solicita.
 CREATE TRIGGER SOLICITAR_EQUIPO 
 ON SOLICITUDES AFTER INSERT 
 AS
@@ -153,14 +153,14 @@ AS
 	
 	SELECT @num_dispositivo = NUM_SERIE FROM INSERTED
 	
-	UPDATE DISPOSITIVOS SET ESTADO = 'O' WHERE NUM_SERIE = @num_dispositivo
+	UPDATE DISPOSITIVOS SET ESTADO = 'Pendiente' WHERE NUM_SERIE = @num_dispositivo
 GO
 
 -- Trigger cuando se acepta o rechaza una solicitud.
 CREATE TRIGGER ULTIMATUM_EQUIPO 
 ON SOLICITUDES AFTER UPDATE
 AS
-    DECLARE @num_dispositivo nvarchar(20), @num_usuario int, @ultimatum char
+    DECLARE @num_dispositivo nvarchar(20), @num_usuario int, @ultimatum nvarchar(15)
 	
 	SELECT @num_dispositivo = NUM_SERIE FROM INSERTED
 	SELECT @num_usuario = ID_USUARIO FROM INSERTED
@@ -168,7 +168,7 @@ AS
 
 	INSERT INTO HISTORICO_SOLICITUDES VALUES (@num_dispositivo, @num_usuario, GETDATE(), @ultimatum)
 	
-	IF @ultimatum = 'R'
+	IF @ultimatum = 'Rechazado'
 		DELETE FROM SOLICITUDES WHERE NUM_SERIE = @num_dispositivo AND ID_USUARIO = @num_usuario
 GO
 
@@ -176,12 +176,12 @@ GO
 CREATE TRIGGER DEVOLVER_EQUIPO 
 ON SOLICITUDES AFTER DELETE
 AS
-    DECLARE @num_dispositivo nvarchar(20), @num_usuario int, @ultimatum char
+    DECLARE @num_dispositivo nvarchar(20), @num_usuario int, @ultimatum nvarchar(15)
 	
 	SELECT @num_dispositivo = NUM_SERIE FROM DELETED
 	SELECT @num_usuario = ID_USUARIO FROM DELETED
 
-	UPDATE DISPOSITIVOS SET ESTADO = 'D' WHERE NUM_SERIE = @num_dispositivo
+	UPDATE DISPOSITIVOS SET ESTADO = 'Disponible' WHERE NUM_SERIE = @num_dispositivo
 	
 	DELETE FROM SOLICITUDES WHERE NUM_SERIE = @num_dispositivo AND ID_USUARIO = @num_usuario
 GO
@@ -193,7 +193,7 @@ AS
 
 	SELECT @id_usuario = ID_USUARIO FROM USUARIOS WHERE CORREO = @correo
 
-	INSERT INTO SOLICITUDES VALUES (@num_dispositivo, @id_usuario, 'O')
+	INSERT INTO SOLICITUDES VALUES (@num_dispositivo, @id_usuario, 'Pendiente')
 GO
 
 -- Este procedimiento acepta una solicitud.
@@ -203,7 +203,8 @@ AS
 
 	SELECT @id_usuario = ID_USUARIO FROM USUARIOS WHERE CORREO = @correo
 
-	UPDATE SOLICITUDES SET ESTADO = 'A' WHERE NUM_SERIE = @num_dispositivo AND ID_USUARIO = @id_usuario
+	UPDATE SOLICITUDES SET ESTADO = 'Aceptado' WHERE NUM_SERIE = @num_dispositivo AND ID_USUARIO = @id_usuario
+	UPDATE DISPOSITIVOS SET ESTADO = 'Ocupado' WHERE NUM_SERIE = @num_dispositivo
 GO
 
 -- Este procedimiento rechaza una solicitud.
@@ -213,7 +214,7 @@ AS
 
 	SELECT @id_usuario = ID_USUARIO FROM USUARIOS WHERE CORREO = @correo
 
-	UPDATE SOLICITUDES SET ESTADO = 'R' WHERE NUM_SERIE = @num_dispositivo AND ID_USUARIO = @id_usuario
+	UPDATE SOLICITUDES SET ESTADO = 'Rechazado' WHERE NUM_SERIE = @num_dispositivo AND ID_USUARIO = @id_usuario
 GO
 
 -- Este procedimiento finaliza una solicitud.
